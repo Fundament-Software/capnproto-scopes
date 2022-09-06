@@ -82,13 +82,13 @@ enum Pointer
         switch a 
         case 0
             this-type.Struct 
-                ((position as i64) + 1 + ((((word & 0x3FFFFFFF00000000) >> 30) as i32) >> 2)) as u32
+                ((position as i64) + ((((word & 0x3FFFFFFF00000000) >> 30) as i32) >> 2)) as u32
                 ((word & 0x00000000FFFF0000) >> 16) as u16
                 (word & 0x000000000000FFFF) as u16
                 segment
         case 1
             this-type.List 
-                ((position as i64) + 1 + ((((word & 0x3FFFFFFF00000000) >> 30) as i32) >> 2)) as u32
+                ((position as i64) + ((((word & 0x3FFFFFFF00000000) >> 30) as i32) >> 2)) as u32
                 ((word & 0x00000000E0000000) >> 29) as i8
                 (word & 0x000000001FFFFFFF) as u32
                 segment
@@ -125,8 +125,7 @@ struct Message
         n += 1
         let sizes = (malloc-array u32 n)
         (fread sizes (sizeof u32) n fd)
-
-        if (n % 2 != 0)
+        if (n % 2 == 0)
             (fseek fd (sizeof u32) SEEK_CUR)
 
         local segmentlist = ((GrowingArray Owned-Segment))

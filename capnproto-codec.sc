@@ -20,16 +20,7 @@ using import C.stdio
 using import itertools
 let capword = u64
 
-type Segment :: (tuple (mutable (pointer capword)) usize)
-    inline __typecall (cls count buff)
-        bitcast (tupleof buff (count as usize)) cls
-
-    inline __@ (self idx)
-        idx as:= usize
-        let base size = (unpack (storagecast self))
-        assert (idx < size) "index out of bounds"
-        base @ idx
-
+type SegmentInterface
     inline get (self n element)
         let base size = (unpack (storagecast self))
         if (n + (sizeof element) >= size * (sizeof capword))
@@ -41,7 +32,18 @@ type Segment :: (tuple (mutable (pointer capword)) usize)
                         (ptrtoint base intptr) + n
                         @ element
 
-type Owned-Segment <: Segment
+type Segment < SegmentInterface :: (tuple (mutable (pointer capword)) usize)
+    inline __typecall (cls count buff)
+        bitcast (tupleof buff (count as usize)) cls
+
+    inline __@ (self idx)
+        idx as:= usize
+        let base size = (unpack (storagecast self))
+        assert (idx < size) "index out of bounds"
+        base @ idx
+
+
+type Owned-Segment <:: Segment
     inline __typecall (cls count)
         let buff = (malloc-array capword count)
         for i in (range count)
@@ -59,17 +61,6 @@ type Owned-Segment <: Segment
         let base size = (unpack (storagecast self))
         free base
         _;
-
-    inline get (self n element)
-        let base size = (unpack (storagecast self))
-        if (n + (sizeof element) >= size * (sizeof capword))
-            0 as element
-        else 
-            copy
-                @
-                    inttoptr 
-                        (ptrtoint base intptr) + n
-                        @ element
 
 enum Pointer 
     Struct : u32 u16 u16 u32
@@ -131,7 +122,7 @@ struct Message
         local segmentlist = ((GrowingArray Owned-Segment))
         for i in (range n)
             let segment = (Owned-Segment (@ sizes i))
-            let base size = (unpack (storagecast segment))
+            let base size = (unpack (storagecast (view segment)))
             (fread base (sizeof capword) size fd)
             'append segmentlist segment
         

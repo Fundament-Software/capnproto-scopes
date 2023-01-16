@@ -23,13 +23,13 @@ let capword = u64
 type SegmentInterface
     inline get (self n element)
         let base size = (unpack (storagecast self))
-        if (n + (sizeof element) >= size * (sizeof capword))
+        if (n as usize + (sizeof element) >= size * (sizeof capword))
             0 as element
         else 
             copy
                 @
                     inttoptr 
-                        (ptrtoint base intptr) + n
+                        (ptrtoint base intptr) + n as usize
                         @ element
 
 type Segment < SegmentInterface :: (tuple (mutable (pointer capword)) usize)
@@ -65,9 +65,12 @@ type Owned-Segment <:: Segment
 enum Pointer 
     Struct : u32 u16 u16 u32
     List : u32 i8 u32 u32
-    Far : bool i32 u32
+    Far : bool u32 u32
     Capability : u32
 
+    # Our pointer object stores more information than just a capnproto pointer. We also store the section index the
+    # pointer is from, and the word offset (position) of the pointer in that section, provided the pointer is either
+    # a struct pointer or a list pointer. Far pointers and capabilities ignore the segment and position parameters.
     fn... from-word (word : capword, segment : u32, position : u32)
         let a = (word >> 62)
         switch a 
@@ -86,7 +89,7 @@ enum Pointer
         case 2
             this-type.Far 
                 ((word & 0x2000000000000000) >> 61) as bool
-                (((word & 0x1FFFFFFF00000000) >> 29) as i32) >> 3
+                (((word & 0x1FFFFFFF00000000) >> 29) as u32) >> 3
                 (word & 0x00000000FFFFFFFF) as u32
         case 3
             this-type.Capability 
@@ -102,8 +105,8 @@ enum Pointer
             1 << 62 | (offset as u32 << 32) | (element-size << 29) | list-size
         case Far (word-size offset segment)
             2 << 62 | (word-size << 61) | offset << 32 | segment
-        case Capability (size)
-            3 << 62 | size
+        case Capability (index)
+            3 << 62 | index
         default
             unreachable;
 
@@ -128,7 +131,7 @@ struct Message
         
         this-type
             segmentlist
-    
+
     inline getRoot (message)
         let word = ((message.segments @ 0) @ 0)
         Pointer.from-word word 0 0
@@ -137,12 +140,10 @@ struct Message
         static-match element
         case void
             _;
-        case bool
-
         case Pointer
-            unreachable;
+            error "not implemented!"
         default 
-            local typelist = (arrayof type i8 i16 i32 i64 u8 u16 u32 u64 f32 f64)
+            local typelist = (arrayof type i8 i16 i32 i64 u8 u16 u32 u64 f32 f64 bool)
 
             let isvalid = 
                 ->> typelist 
@@ -153,19 +154,72 @@ struct Message
             if (not isvalid)
                 error "Invalid type passed in to get!"
 
+            # the offset is always given as a multiple of the element size. This means we need special handling for 1-bit bools.
             let size = (sizeof element)
 
-            dispatch (view base)
-            case Struct (position data-size pointer-size segment)
-                let location = ((position * (sizeof capword)) + (offset * size))
-                'get (message.segments @ segment) location element
-            case List (position element-size list-size segment)
-                0 as element
-            case Far (word-size offset segment)
-                0 as element
-            case Capability (size)
-                error "??????????"
-            default
-                unreachable;
+            loop (curbase = base)
+                dispatch (view curbase)
+                case Struct (position data-size pointer-size segment)
+                    static-if (element == bool)
+                        let byte-offset = ((position * (sizeof capword)) + (offset // 8))
+                        let bit-offset = (offset % 8)
+                        break (((('get (message.segments @ segment) byte-offset u8) & (1 << bit-offset)) != 0) as element)
+                    else
+                        let location = ((position * (sizeof capword)) + (offset * size))
+                        break ('get (message.segments @ segment) location element)
+                case List (position element-size list-size segment)
+                    match element-size
+                    case 0
+                        0 as element
+                    case 1
+                        if offset >= list-size
+                            error "out of bounds list access"
+                        
+                        let byte-offset = ((position * (sizeof capword)) + (offset // 8))
+                        let bit-offset = (offset % 8)
+                        (((('get (message.segments @ segment) byte-offset u8) & (1 << bit-offset)) != 0) as element)
+                    case 6
+                        error "not implemented!"
+                    case 7
+                        let tag = (Pointer.from-word ('get (message.segments @ segment) (position * (sizeof capword)) u8) 0 0)
+                        
+                        dispatch (view tag)
+                        case Struct (element-count arg1 arg2 arg3)
+                            if offset > element-count
+                                error "out of bounds list access"
+                            
+                            let element-bytes = (list-size // element-count)
+
+                            if element-bytes != size
+                                error "element-bytes does not equal (sizeof element)!" 
+
+                            let location = (((position + 1) * (sizeof capword)) + (offset * element-bytes) as i64)
+                            ('get (message.segments @ segment) location element)
+                        default
+                            error "Illegal tag pointer"
+                    default
+                        if element-size > 7
+                            error "Illegal encoding"
+                        elseif offset >= list-size
+                            error "out of bounds list access"
+                        else
+                            let element-bytes = ((1 << (element-size - 2)) as u32)
+
+                            if element-bytes != size
+                                error "element-bytes does not equal (sizeof element)!"
+                            
+                            let location = ((position * (sizeof capword)) + (offset * element-bytes) as i64)
+                            ('get (message.segments @ segment) location element)
+                #case Far (word-size offset segment)
+                #    if word-size == false
+                #        let pos = (offset * (sizeof capword))
+                #        let ptr = (Pointer.from-word ('get (message.segments @ segment) pos capword) segment pos)
+                #        repeat ptr
+                #    else
+                #        error "not implemented!"
+                case Capability (index)
+                    error "not implemented!"
+                default
+                    unreachable;
 
 locals;

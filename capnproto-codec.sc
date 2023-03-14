@@ -18,6 +18,12 @@ using import enum
 using import Array
 using import C.stdio
 using import itertools
+
+spice show-type (val)
+    print ('typeof val)
+    val
+run-stage;
+
 let capword = u64
 
 type SegmentInterface
@@ -62,7 +68,7 @@ type Owned-Segment <:: Segment
         free base
         _;
 
-enum Pointer 
+enum Pointer
     Struct : u32 u16 u16 u32
     List : u32 i8 u32 u32
     Far : bool u32 u32
@@ -109,6 +115,7 @@ enum Pointer
             3 << 62 | index
         default
             unreachable;
+
 
 struct Message 
     segments : (GrowingArray Owned-Segment)
@@ -157,7 +164,7 @@ struct Message
             # the offset is always given as a multiple of the element size. This means we need special handling for 1-bit bools.
             let size = (sizeof element)
 
-            loop (curbase = base)
+            loop (curbase = (view base))
                 dispatch (view curbase)
                 case Struct (position data-size pointer-size segment)
                     static-if (element == bool)
@@ -168,6 +175,7 @@ struct Message
                         let location = ((position * (sizeof capword)) + (offset * size))
                         break ('get (message.segments @ segment) location element)
                 case List (position element-size list-size segment)
+                    vvv break
                     match element-size
                     case 0
                         0 as element

@@ -1,0 +1,127 @@
+{
+  "nodes": {
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1676283394,
+        "narHash": "sha256-XX2f9c3iySLCw54rJ/CZs+ZK6IQy7GXNY4nSOyu2QG4=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "3db36a8b464d0c4532ba1c7dda728f4576d6d073",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "flake-utils_2": {
+      "locked": {
+        "lastModified": 1653893745,
+        "narHash": "sha256-0jntwV3Z8//YwuOjzhV2sgJJPt+HY6KhU7VZUL0fKZQ=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "1ed9fb1935d260de5fe1c2f7ee0ebaae17ed2fa1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "genie-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1639236213,
+        "narHash": "sha256-+6xlyWlBJOt/RTx36UrqO0e8tyuX90UKyzFHSAJeCY4=",
+        "owner": "bkaradzic",
+        "repo": "genie",
+        "rev": "7860ea4ae5b2e398276dcdd138032c979301348e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "bkaradzic",
+        "repo": "genie",
+        "type": "github"
+      }
+    },
+    "nix-filter": {
+      "locked": {
+        "lastModified": 1653590866,
+        "narHash": "sha256-E4yKIrt/S//WfW5D9IhQ1dVuaAy8RE7EiCMfnbrOC78=",
+        "owner": "numtide",
+        "repo": "nix-filter",
+        "rev": "3e81a637cdf9f6e9b39aeb4d6e6394d1ad158e16",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "nix-filter",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1670543317,
+        "narHash": "sha256-4mMR56rtxKr+Gwz399jFr4i76SQZxsLWxxyfQlPXRm0=",
+        "path": "/nix/store/hd3pdbffficwkxw8lx8rfvcbmxp3g3q8-source",
+        "rev": "7a6a010c3a1d00f8470a5ca888f2f927f1860a19",
+        "type": "path"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs",
+        "scopes": "scopes"
+      }
+    },
+    "scopes": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "genie-src": "genie-src",
+        "nix-filter": "nix-filter",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "spirv-cross-src": "spirv-cross-src"
+      },
+      "locked": {
+        "lastModified": 1674523810,
+        "narHash": "sha256-xjSPHfk3Lv1JseRIh3BdY52LyYYXDIuAMtfBdOp2Fnk=",
+        "owner": "Fundament-software",
+        "repo": "scopes",
+        "rev": "e4bae70c7b6b0fbbf68bb47893fec05ed45f0c8c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Fundament-software",
+        "repo": "scopes",
+        "type": "github"
+      }
+    },
+    "spirv-cross-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1648146442,
+        "narHash": "sha256-OluTxOEfDIGMdrXhvIifjpMgZBvyh9ofLKxKt0dX5ZU=",
+        "owner": "KhronosGroup",
+        "repo": "SPIRV-Cross",
+        "rev": "0d4ce028bf8b8a94d325dc1e1c20446153ba19c4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "KhronosGroup",
+        "repo": "SPIRV-Cross",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

@@ -69,6 +69,7 @@ type Owned-Segment <:: Segment
         _;
 
 enum Pointer
+    Null
     Struct : u32 u16 u16 u32
     List : u32 i8 u32 u32
     Far : bool u32 u32
@@ -78,41 +79,48 @@ enum Pointer
     # pointer is from, and the word offset (position) of the pointer in that section, provided the pointer is either
     # a struct pointer or a list pointer. Far pointers and capabilities ignore the segment and position parameters.
     fn... from-word (word : capword, segment : u32, position : u32)
-        let a = (word >> 62)
-        switch a 
+        switch (word & 3)
         case 0
-            this-type.Struct 
-                ((position as i64) + ((((word & 0x3FFFFFFF00000000) >> 30) as i32) >> 2)) as u32
-                ((word & 0x00000000FFFF0000) >> 16) as u16
-                (word & 0x000000000000FFFF) as u16
-                segment
+            if (0 == word)
+                this-type.Null;
+            else
+                this-type.Struct
+                    ((word & 0xFFFFFFFF) as i32 >> 2) as u32 + position + 1
+                    ((word >> 32) & 0xFFFF) as u16
+                    (word >> 48) as u16
+                    segment
         case 1
-            this-type.List 
-                ((position as i64) + ((((word & 0x3FFFFFFF00000000) >> 30) as i32) >> 2)) as u32
-                ((word & 0x00000000E0000000) >> 29) as i8
-                (word & 0x000000001FFFFFFF) as u32
+            this-type.List
+                ((word & 0xFFFFFFFF) as i32 >> 2) as u32 + position + 1
+                ((word >> 32) & 7) as i8
+                (word >> 35) as u32
                 segment
         case 2
-            this-type.Far 
-                ((word & 0x2000000000000000) >> 61) as bool
-                (((word & 0x1FFFFFFF00000000) >> 29) as u32) >> 3
-                (word & 0x00000000FFFFFFFF) as u32
+            this-type.Far
+                ((word >> 2) & 1) as bool
+                ((word & 0xFFFFFFFF) >> 3) as u32
+                (word >> 32) as u32
         case 3
-            this-type.Capability 
-                (word & 0x00000000FFFFFFFF) as u32
+            if (0 == (word & 0xFFFFFFFC))
+                this-type.Capability
+                    (word >> 32) as u32
+            else
+                error "Unimplemented pointer type!"
         default
             unreachable;
     
-    fn to-word (self)
+    fn... to-word (self : this-type, position : u32)
         dispatch self
+        case Null ()
+            0:u64
         case Struct (offset data-size pointer-size segment)
-            0 << 62 | (offset as u32 << 32) | (data-size << 16) | pointer-size
+            0:u64 | (((offset - position - 1) << 2) as u64) | (data-size as u64 << 32) | (pointer-size as u64 << 48)
         case List (offset element-size list-size segment)
-            1 << 62 | (offset as u32 << 32) | (element-size << 29) | list-size
-        case Far (word-size offset segment)
-            2 << 62 | (word-size << 61) | offset << 32 | segment
+            1:u64 | (((offset - position - 1) << 2) as u64) | (element-size as u64 << 32) | (list-size as u64 << 35)
+        case Far (landing-size offset segment)
+            2:u64 | (landing-size as u64 << 2) | ((offset << 3) as u64) | (segment as u64 << 32)
         case Capability (index)
-            3 << 62 | index
+            3:u64 | (index as u64 << 32)
         default
             unreachable;
 

@@ -120,20 +120,20 @@ enum Pointer
 struct Message 
     segments : (GrowingArray Owned-Segment)
 
-    fn from-fd (fd)
+    fn from-file (file)
         local n : u32 = 0
-        (fread (& n) (sizeof u32) 1 fd)
+        fread (& n) (sizeof u32) 1 file
         n += 1
         let sizes = (malloc-array u32 n)
-        (fread sizes (sizeof u32) n fd)
+        fread sizes (sizeof u32) n file
         if (n % 2 == 0)
-            (fseek fd (sizeof u32) SEEK_CUR)
+            fseek file (sizeof u32) SEEK_CUR
 
         local segmentlist = ((GrowingArray Owned-Segment))
         for i in (range n)
             let segment = (Owned-Segment (@ sizes i))
             let base size = (unpack (storagecast (view segment)))
-            (fread base (sizeof capword) size fd)
+            fread base (sizeof capword) size file
             'append segmentlist segment
         
         this-type
